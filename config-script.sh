@@ -33,9 +33,9 @@ config_dnf() {
 
 	for config in "${!configurations[@]}"; do
 		if grep -q "$config" $inputFile; then
-			sed -i -e "/$config=/ s/=.*/=${configurations[$config]}/" $inputFile
+			sudo sed -i -e "/$config=/ s/=.*/=${configurations[$config]}/" $inputFile
 		else
-			echo "$config=${configurations[$config]}" >>$inputFile
+			echo "$config=${configurations[$config]}" | sudo tee $inputFile
 		fi
 	done
 }
@@ -44,20 +44,20 @@ config_dnf() {
 dnf_setup() {
 	# Update the system
 	update_system() {
-		echo -e "\tUpdating the system"
-		dnf update $dnf_install_options
+		invert_echo "Updating the system"
+		sudo dnf update $dnf_install_options
 	}
 
 	# Enable RPM Fusion
 	enable_rpm_fusion() {
-		echo -e "\tEnabling RPM fusion repositories"
-		dnf install $dnf_install_options https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-"$system_version".noarch.rpm \
+		invert_echo "Enabling RPM fusion repositories"
+		sudo dnf install $dnf_install_options https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-"$system_version".noarch.rpm \
 			https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-"$system_version".noarch.rpm
 	}
 
 	dnf_plugins() {
-		echo -e "\tAdding DNF plugins"
-		dnf install $dnf_install_options dnf-plugins-core
+		invert_echo "Adding DNF plugins"
+		sudo dnf install $dnf_install_options dnf-plugins-core
 	}
 
 	update_system
@@ -68,16 +68,15 @@ dnf_setup() {
 # 4. Install stuff
 install_base_stuff() {
 	pre_install() {
-		invert_echo "\tPreinstall actions"
+		invert_echo "Preinstall actions"
 		# OpenRazer backend
-		dnf config-manager --add-repo https://download.opensuse.org/repositories/hardware:razer/Fedora_"$system_version"/hardware:razer.repo
-		dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-		dnf copr $dnf_install_options enable tokariew/i3lock-color
+		sudo dnf config-manager --add-repo https://download.opensuse.org/repositories/hardware:razer/Fedora_"$system_version"/hardware:razer.repo
+		sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+		sudo dnf copr $dnf_install_options enable tokariew/i3lock-color
 	}
 
 	install() {
-		set -x
-		invert_echo "\tInstall actions"
+		invert_echo "Install actions"
 		build_essentials="cmake make automake gcc gcc-c++ kernel-devel curl \
       zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel \
       openssl-devel tk-devel libffi-devel xz-devel libuuid-devel gdbm-devel \
@@ -93,33 +92,33 @@ install_base_stuff() {
 		i3_list="i3 i3status i3lock-color feh dunst picom polybar rofi xrdb"
 		exclude_list="gstreamer1-plugins-bad-free-devel lame-devel"
 
-		dnf install $dnf_install_options $build_essentials $media_list $tools_list $i3_list --exclude=$exclude_list
-		dnf group install $dnf_install_options --with-optional Multimedia
+		sudo dnf install $dnf_install_options $build_essentials $media_list $tools_list $i3_list --exclude=$exclude_list
+		sudo dnf group install $dnf_install_options --with-optional Multimedia
 
 		# Flatpak installs
-		invert_echo "\tInstalling flatpaks"
+		invert_echo "Installing flatpaks"
 		flatpak_apps="com.discordapp.Discord com.getpostman.Postman com.github.tchx84.Flatseal com.spotify.Client"
 		flatpak install --noninteractive $flatpak_apps
 
 		# docker
-		invert_echo "\tInstalling docker"
+		invert_echo "Installing docker"
 		groupadd docker
 		usermod -aG docker $USER
 		systemctl enable docker
 
 		# Create mongodb container
-		invert_echo "\tCreating mongodb container"
+		invert_echo "Creating mongodb container"
 		docker pull mongodb/mongodb-community-server
 		docker run --name mongo -d mongodb/mongodb-community-server:latest
 
 		# mongocompass
-		invert_echo "\tInstalling mongocompass"
+		invert_echo "Installing mongocompass"
 		mongocompass_url="https://downloads.mongodb.com/compass/mongodb-compass-1.38.2.x86_64.rpm"
 		wget "$mongocompass_url" -P "$HOME/Downloads/"
-		dnf install $dnf_install_options "$HOME/Downloads/mongodb-compass-1.38.2.x86_64.rpm"
+		sudo dnf install $dnf_install_options "$HOME/Downloads/mongodb-compass-1.38.2.x86_64.rpm"
 
 		# fonts
-		invert_echo "\tInstalling fonts"
+		invert_echo "Installing fonts"
 
 		declare -A fonts=(["ibmplex"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/ibmplexmono.tar.xz"
 			["inconsolata"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/Inconsolata.tar.xz"
@@ -135,16 +134,16 @@ install_base_stuff() {
 		done
 
 		# fzf
-		invert_echo "\tInstalling fzf"
+		invert_echo "Installing fzf"
 		git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 		~/.fzf/install --all --no-bash --no-fish --completion
 
 		# spicetify
-		invert_echo "\tInstalling spicetify"
+		invert_echo "Installing spicetify"
 		curl -fsSL https://raw.githubusercontent.com/spicetify/spicetify-cli/master/install.sh | sh
 
 		# neovim dependencies
-		invert_echo "\tInstalling neovim dependencies"
+		invert_echo "Installing neovim dependencies"
 		cargo install rbw
 
 		# betterlock
@@ -187,16 +186,11 @@ initial_configurations() {
 run_all() {
 	step=1
 	initial_configurations "$step"
+	invert_echo "It is recommended that you restart your system"
 	invert_echo "NOTE: Manually configure the following tools:"
 	echo "* Spicetify from the following link https://spicetify.app/docs/advanced-usage/installation#spotify-installed-from-flatpak"
 	echo "* Betterlock from the following link https://github.com/betterlockscreen/betterlockscreen#installation"
 }
 
-if [[ $EUID -ne 0 ]]; then
-	echo "$0 is not running as root. Try using sudo."
-	exit 2
-else
-	invert_echo "Installing first time config for Fedora $system_version"
-	run_all
-	reboot
-fi
+invert_echo "Installing first time config for Fedora $system_version"
+run_all
