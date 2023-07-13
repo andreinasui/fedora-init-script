@@ -3,7 +3,7 @@
 
 # =========== System (Fedora) initial configs ===========
 
-dnf_install_options="--assumeyes"
+dnf_install_options="--assumeyes --allowerasing"
 system_version="$(rpm -E %fedora)"
 
 invert_echo() {
@@ -83,33 +83,43 @@ install_base_stuff() {
       libnsl2-devel musl-libc autoconf automake cairo-devel fontconfig \
       libev-devel libjpeg-turbo-devel libXinerama libxkbcommon-devel \
       libxkbcommon-x11-devel libXrandr pam-devel pkgconf xcb-util-image-devel xcb-util-xrm-devel"
-		media_list="vlc gstreamer1-plugins-{bad-\*,good-\*,base-\*} \
+		media_list="vlc gstreamer1-plugins-bad-* gstreamer1-plugins-good-* \
+      gstreamer1-plugins-base-* \
       gstreamer1-plugin-openh264 gstreamer1-libav \
       lame* gnome-tweaks gnome-extensions-app steam \
-      openrazer-meta polychromatic"
-		tools_list="flatpak ripgrep fd-find tmux cargo wine lutris alacritty stow zsh neovim curl \
-      docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
+      openrazer-meta"
+		tools_list="flatpak ripgrep fd-find tmux cargo wine lutris alacritty stow zsh neovim curl"
+		docker_list="docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
 		i3_list="i3 i3status i3lock-color feh dunst picom polybar rofi xrdb"
 		exclude_list="gstreamer1-plugins-bad-free-devel lame-devel"
 
-		sudo dnf install $dnf_install_options $build_essentials $media_list $tools_list $i3_list --exclude=$exclude_list
+		sudo dnf install $dnf_install_options $build_essentials $media_list $tools_list $i3_list $docker_list --exclude=$exclude_list
 		sudo dnf group install $dnf_install_options --with-optional Multimedia
+
+		# Specifically for polychromatic
+		sudo rpm -e gpg-pubkey-d6d11ce4-5418547d
+		sudo dnf install --nogpgcheck polychromatic
 
 		# Flatpak installs
 		invert_echo "Installing flatpaks"
 		flatpak_apps="com.discordapp.Discord com.getpostman.Postman com.github.tchx84.Flatseal com.spotify.Client"
 		flatpak install --noninteractive $flatpak_apps
 
+	}
+
+	post_install() {
+		invert_echo "Postinstall actions"
+
 		# docker
 		invert_echo "Installing docker"
-		groupadd docker
-		usermod -aG docker $USER
-		systemctl enable docker
+		sudo groupadd docker
+		sudo usermod -aG docker $USER
+		sudo systemctl enable docker
 
 		# Create mongodb container
 		invert_echo "Creating mongodb container"
-		docker pull mongodb/mongodb-community-server
-		docker run --name mongo -d mongodb/mongodb-community-server:latest
+		sudo docker pull mongodb/mongodb-community-server
+		sudo docker run --name mongo -d mongodb/mongodb-community-server:latest
 
 		# mongocompass
 		invert_echo "Installing mongocompass"
@@ -126,11 +136,15 @@ install_base_stuff() {
 			["roboto"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/RobotoMono.tar.xz"
 			["source-code-pro"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/SourceCodePro.tar.xz"
 		)
-		mkdir -p "$HOME/.local/share/fonts"
+		mkdir -pv "$HOME/.local/share/fonts"
 		for font_key in "${!fonts[@]}"; do
-			wget -O "$font_key.tar.xz" "${fonts[$font_key]}" -P "$HOME/.local/share/fonts"
-			mkdir -p "$HOME/.local/share/fonts/$font_key"
+			echo "DOWNLOADING font $font_key"
+			wget -q -O "$font_key.tar.xz" "${fonts[$font_key]}"
+			mkdir -pv "$HOME/.local/share/fonts/$font_key"
+			echo "EXTRACTING font $font_key to $HOME/.local/share/fonts/$font_key"
 			tar xf "$font_key.tar.xz" -C "$HOME/.local/share/fonts/$font_key"
+			echo "REMOVING local font $font_key"
+			rm -v $font_key".tar.xz"
 		done
 
 		# fzf
@@ -148,16 +162,30 @@ install_base_stuff() {
 
 		# betterlock
 		wget https://raw.githubusercontent.com/betterlockscreen/betterlockscreen/main/install.sh -O - -q | sudo bash -s system latest true
-	}
-
-	post_install() {
-		invert_echo "Postinstall actions"
 
 		# set zsh as default shell
 		chsh -s "$(which zsh)"
 
+		# pyenv
+		invert_echo "Installing pyenv"
+		curl https://pyenv.run | bash
+		invert_echo "Installing python 3.11.4"
+		$HOME/.pyenv/bin/pyenv install 3.11.4
+		$HOME/.pyenv/bin/pyenv global 3.11.4
+
+		# nodenv
+		invert_echo "Configuring nodenv"
+		git clone https://github.com/nodenv/nodenv.git $HOME/.nodenv
+		mkdir -p $HOME/.nodenv/plugins/
+		git clone https://github.com/nodenv/node-build.git $HOME/.nodenv/plugins/node-build
+		git clone https://github.com/nodenv/nodenv-aliases.git $HOME/.nodenv/plugins/nodenv-aliases
+		git clone https://github.com/nodenv/nodenv-update.git $HOME/.nodenv/plugins/nodenv-update
+		invert_echo "Installing node 18.16.0"
+		$HOME/.nodenv/bin/nodenv install 18.16.0
+		$HOME/.nodenv/bin/nodenv global 18.16.0
+
 		# Download dotfiles
-		git clone https://github.com/andreinasui/dotfiles $HOME/.dotfiles
+		git clone https://github.com/andreinasui/dotfiles.git $HOME/.dotfiles
 		(cd $HOME/.dotfiles && stow .)
 
 	}
