@@ -70,6 +70,7 @@ install_base_stuff() {
 	pre_install() {
 		invert_echo "Preinstall actions"
 		# OpenRazer backend
+		sudo dnf install $dnf_install_options kernel-devel # https://openrazer.github.io/#download
 		sudo dnf config-manager --add-repo https://download.opensuse.org/repositories/hardware:razer/Fedora_"$system_version"/hardware:razer.repo
 		sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
 		sudo dnf copr $dnf_install_options enable tokariew/i3lock-color
@@ -111,7 +112,7 @@ install_base_stuff() {
 
 		# docker
 		invert_echo "Installing docker"
-		sudo groupadd docker
+		sudo groupadd -f docker
 		sudo usermod -aG docker $USER
 		sudo systemctl enable docker
 
