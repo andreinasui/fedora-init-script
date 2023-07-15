@@ -114,6 +114,7 @@ install_base_stuff() {
 		invert_echo "Installing docker"
 		sudo groupadd -f docker
 		sudo usermod -aG docker $USER
+		sudo systemctl start docker
 		sudo systemctl enable docker
 
 		# Create mongodb container
