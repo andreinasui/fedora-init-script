@@ -92,9 +92,11 @@ install_base_stuff() {
 		tools_list="flatpak ripgrep fd-find tmux cargo wine lutris alacritty stow zsh neovim curl"
 		docker_list="docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
 		i3_list="i3 i3status i3lock-color feh dunst picom polybar rofi xrdb"
-		exclude_list="gstreamer1-plugins-bad-free-devel lame-devel i3lock dmenu"
+		exclude_list="gstreamer1-plugins-bad-free-devel lame-devel"
+		exclude_i3_list="i3lock dmenu"
 
-		sudo dnf install $dnf_install_options $build_essentials $media_list $tools_list $docker_list $i3_list --exclude=$exclude_list
+		sudo dnf install $dnf_install_options $build_essentials $media_list $tools_list $docker_list --exclude=$exclude_list
+		sudo dnf install $dnf_install_options $i3_list --exclude=$exclude_i3_list
 
 		# Specifically for polychromatic, see https://polychromatic.app/download/fedora
 		sudo rpm -e gpg-pubkey-d6d11ce4-5418547d
