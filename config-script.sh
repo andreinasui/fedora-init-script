@@ -5,6 +5,19 @@
 
 dnf_install_options="--assumeyes --allowerasing"
 system_version="$(rpm -E %fedora)"
+install_log=install.log
+sudo_stat=sudo_status.txt
+
+echo $$ >>$sudo_stat
+trap 'rm -f $sudo_stat >/dev/null 2>&1' 0
+trap "exit 2" 1 2 3 15
+
+sudo_me() {
+	while [ -f $sudo_stat ]; do
+		sudo -v
+		sleep 10
+	done &
+}
 
 invert_echo() {
 	message=$1
@@ -245,4 +258,8 @@ run_all() {
 }
 
 invert_echo "Installing first time config for Fedora $system_version"
-run_all
+sudo -v
+sudo_me
+
+run_all | tee $install_log
+rm $sudo_stat
