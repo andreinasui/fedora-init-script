@@ -15,7 +15,7 @@ trap "exit 2" 1 2 3 15
 sudo_me() {
 	while [ -f $sudo_stat ]; do
 		sudo -v
-		sleep 10
+		sleep 5
 	done &
 }
 
@@ -96,7 +96,7 @@ install_base_stuff() {
       openssl-devel tk-devel libffi-devel xz-devel libuuid-devel gdbm-devel \
       libnsl2-devel musl-libc autoconf automake cairo-devel fontconfig \
       libev-devel libjpeg-turbo-devel libXinerama libxkbcommon-devel \
-      libxkbcommon-x11-devel libXrandr pam-devel pkgconf xcb-util-image-devel xcb-util-xrm-devel"
+      libxkbcommon-x11-devel libXrandr pam-devel pkgconf xcb-util-image-devel xcb-util-xrm-devel util-linux-user"
 		media_list="vlc gstreamer1-plugins-bad-* gstreamer1-plugins-good-* \
       gstreamer1-plugins-base-* \
       gstreamer1-plugin-openh264 gstreamer1-libav \
@@ -104,7 +104,7 @@ install_base_stuff() {
       openrazer-meta"
 		tools_list="flatpak ripgrep fd-find tmux cargo wine lutris alacritty stow zsh neovim curl"
 		docker_list="docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
-		i3_list="i3 i3status i3lock-color feh dunst picom polybar rofi xrdb"
+		i3_list="i3 i3status i3lock-color feh dunst picom polybar rofi xrdb xset xdpyinfo"
 		exclude_list="gstreamer1-plugins-bad-free-devel lame-devel"
 		exclude_i3_list="i3lock dmenu"
 
@@ -187,7 +187,7 @@ install_base_stuff() {
 		wget https://raw.githubusercontent.com/betterlockscreen/betterlockscreen/main/install.sh -O - -q | sudo bash -s system latest true
 
 		# set zsh as default shell
-		chsh -s "$(which zsh)"
+		chsh -s "$(which zsh)" $USER
 
 		# pyenv
 		invert_echo "Installing pyenv"
@@ -210,8 +210,11 @@ install_base_stuff() {
 		$HOME/.nodenv/bin/nodenv global $node_version
 
 		# Download dotfiles
+		invert_echo "Downloading dotfiles"
 		git clone https://github.com/andreinasui/dotfiles.git $HOME/.dotfiles
 		rm -rf $HOME/.zshrc
+		mkdir -p $HOME/Pictures/Wallpapers/
+		invert_echo "Installing dotfiles"
 		(cd $HOME/.dotfiles && stow .)
 
 		# Create betterlockscreen cache
@@ -219,7 +222,6 @@ install_base_stuff() {
 
 		# fix i3lock to be able to accept login password after screen lock
 		echo "auth include system-auth" | sudo tee -a /etc/pam.d/i3lock
-
 	}
 
 	pre_install && install && post_install
@@ -254,7 +256,7 @@ run_all() {
 	echo "* Betterlock from the following link https://github.com/betterlockscreen/betterlockscreen#installation"
 	echo "* Input-leap"
 	echo "* Pipewire sound"
-	sudo dnf clean all
+	echo "Cleaning dnf cache..." && sudo dnf clean all
 }
 
 invert_echo "Installing first time config for Fedora $system_version"
