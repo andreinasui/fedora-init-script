@@ -23,19 +23,19 @@ invert_echo() {
 
 # 1. Change name
 change_hostname() {
-	which hostnamectl 2>/dev/null && hostnamectl set-hostname "$1"
+	(which hostnamectl >/dev/null 2>&1 && (echo "Setting hostname to $1" && hostnamectl set-hostname "$1")) || echo "Failed setting hostname"
 }
 
 # 2. Configure DNF for Faster Downloads of Packages
 config_dnf() {
 	inputFile="/etc/dnf/dnf.conf"
-	declare -A configurations=(["max_parallel_downloads"]=10 ["fastestmirror"]="true" ["deltarpm"]="true")
+	declare -A configurations=(["max_parallel_downloads"]=10 ["fastestmirror"]="True" ["deltarpm"]="True")
 
 	for config in "${!configurations[@]}"; do
 		if grep -q "$config" $inputFile; then
 			sudo sed -i -e "/$config=/ s/=.*/=${configurations[$config]}/" $inputFile
 		else
-			echo "$config=${configurations[$config]}" | sudo tee $inputFile
+			echo "$config=${configurations[$config]}" | sudo tee -a $inputFile
 		fi
 	done
 }
@@ -94,11 +94,10 @@ install_base_stuff() {
 		exclude_list="gstreamer1-plugins-bad-free-devel lame-devel"
 
 		sudo dnf install $dnf_install_options $build_essentials $media_list $tools_list $i3_list $docker_list --exclude=$exclude_list
-		sudo dnf group install $dnf_install_options --with-optional Multimedia
 
-		# Specifically for polychromatic
+		# Specifically for polychromatic, see https://polychromatic.app/download/fedora
 		sudo rpm -e gpg-pubkey-d6d11ce4-5418547d
-		sudo dnf install --nogpgcheck polychromatic
+		sudo dnf install $dnf_install_options --nogpgcheck polychromatic
 
 		# Flatpak installs
 		invert_echo "Installing flatpaks"
@@ -140,9 +139,11 @@ install_base_stuff() {
 		for font_key in "${!fonts[@]}"; do
 			echo "DOWNLOADING font $font_key"
 			wget -q -O "$font_key.tar.xz" "${fonts[$font_key]}"
-			mkdir -pv "$HOME/.local/share/fonts/$font_key"
-			echo "EXTRACTING font $font_key to $HOME/.local/share/fonts/$font_key"
-			tar xf "$font_key.tar.xz" -C "$HOME/.local/share/fonts/$font_key"
+			mkdir -pv "$HOME/.local/share/fonts/$font_key-nf-3.0.2"
+
+			echo "EXTRACTING font $font_key to $HOME/.local/share/fonts/$font_key-nf-3.0.2"
+			tar xf "$font_key.tar.xz" -C "$HOME/.local/share/fonts/$font_key-nf-3.0.2"
+
 			echo "REMOVING local font $font_key"
 			rm -v $font_key".tar.xz"
 		done
@@ -194,6 +195,7 @@ install_base_stuff() {
 }
 
 initial_configurations() {
+	set -e
 	outsideStep=$1
 	step=1
 	invert_echo "$outsideStep Running initial system configuration..."
