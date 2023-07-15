@@ -129,20 +129,21 @@ install_base_stuff() {
 		# fonts
 		invert_echo "Installing fonts"
 
-		declare -A fonts=(["ibmplex"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/ibmplexmono.tar.xz"
-			["inconsolata"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/Inconsolata.tar.xz"
-			["meslo"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/Meslo.tar.xz"
-			["roboto"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/RobotoMono.tar.xz"
-			["source-code-pro"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/SourceCodePro.tar.xz"
+		local nf_version="3.0.2"
+		declare -A fonts=(["ibmplex"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v$nf_version/ibmplexmono.tar.xz"
+			["inconsolata"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v$nf_version/Inconsolata.tar.xz"
+			["meslo"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v$nf_version/Meslo.tar.xz"
+			["roboto"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v$nf_version/RobotoMono.tar.xz"
+			["source-code-pro"]="https://github.com/ryanoasis/nerd-fonts/releases/download/v$nf_version/SourceCodePro.tar.xz"
 		)
 		mkdir -pv "$HOME/.local/share/fonts"
 		for font_key in "${!fonts[@]}"; do
 			echo "DOWNLOADING font $font_key"
 			wget -q -O "$font_key.tar.xz" "${fonts[$font_key]}"
-			mkdir -pv "$HOME/.local/share/fonts/$font_key-nf-3.0.2"
+			mkdir -pv "$HOME/.local/share/fonts/$font_key-nf-$nf_version"
 
-			echo "EXTRACTING font $font_key to $HOME/.local/share/fonts/$font_key-nf-3.0.2"
-			tar xf "$font_key.tar.xz" -C "$HOME/.local/share/fonts/$font_key-nf-3.0.2"
+			echo "EXTRACTING font $font_key to $HOME/.local/share/fonts/$font_key-nf-$nf_version"
+			tar xf "$font_key.tar.xz" -C "$HOME/.local/share/fonts/$font_key-nf-$nf_version"
 
 			echo "REMOVING local font $font_key"
 			rm -v $font_key".tar.xz"
@@ -170,9 +171,10 @@ install_base_stuff() {
 		# pyenv
 		invert_echo "Installing pyenv"
 		curl https://pyenv.run | bash
-		invert_echo "Installing python 3.11.4"
-		$HOME/.pyenv/bin/pyenv install 3.11.4
-		$HOME/.pyenv/bin/pyenv global 3.11.4
+		local python_version="3.11.4"
+		invert_echo "Installing python $python_version"
+		$HOME/.pyenv/bin/pyenv install $python_version
+		$HOME/.pyenv/bin/pyenv global $python_version
 
 		# nodenv
 		invert_echo "Configuring nodenv"
@@ -181,13 +183,23 @@ install_base_stuff() {
 		git clone https://github.com/nodenv/node-build.git $HOME/.nodenv/plugins/node-build
 		git clone https://github.com/nodenv/nodenv-aliases.git $HOME/.nodenv/plugins/nodenv-aliases
 		git clone https://github.com/nodenv/nodenv-update.git $HOME/.nodenv/plugins/nodenv-update
-		invert_echo "Installing node 18.16.0"
-		$HOME/.nodenv/bin/nodenv install 18.16.0
-		$HOME/.nodenv/bin/nodenv global 18.16.0
+		local node_version="18.16.0"
+		invert_echo "Installing node $node_version"
+		$HOME/.nodenv/bin/nodenv install $node_version
+		$HOME/.nodenv/bin/nodenv global $node_version
 
 		# Download dotfiles
 		git clone https://github.com/andreinasui/dotfiles.git $HOME/.dotfiles
 		(cd $HOME/.dotfiles && stow .)
+
+		# Create betterlockscreen cache
+		betterlockscreen -u $HOME/Pictures/Wallpapers/ --fx blur
+
+		# fix i3lock to be able to accept login password after screen lock
+		echo "auth include system-auth" | sudo tee -a /etc/pam.d/i3lock
+
+		# symlink i3lock-color to i3lock
+		sudo ln -s "$(which i3lock)" /usr/bin/i3lock-color
 
 	}
 
