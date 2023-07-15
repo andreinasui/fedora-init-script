@@ -23,7 +23,7 @@ invert_echo() {
 
 # 1. Change name
 change_hostname() {
-	(which hostnamectl >/dev/null 2>&1 && (echo "Setting hostname to $1" && hostnamectl set-hostname "$1")) || echo "Failed setting hostname"
+	(which hostnamectl >/dev/null 2>&1 && (echo "Setting hostname to $1" && hostnamectl set-hostname "$1" && echo "Hostname set to $1")) || echo "Failed setting hostname"
 }
 
 # 2. Configure DNF for Faster Downloads of Packages
@@ -91,9 +91,9 @@ install_base_stuff() {
 		tools_list="flatpak ripgrep fd-find tmux cargo wine lutris alacritty stow zsh neovim curl"
 		docker_list="docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
 		i3_list="i3 i3status i3lock-color feh dunst picom polybar rofi xrdb"
-		exclude_list="gstreamer1-plugins-bad-free-devel lame-devel"
+		exclude_list="gstreamer1-plugins-bad-free-devel lame-devel i3lock dmenu"
 
-		sudo dnf install $dnf_install_options $build_essentials $media_list $tools_list $i3_list $docker_list --exclude=$exclude_list
+		sudo dnf install $dnf_install_options $build_essentials $media_list $tools_list $docker_list
 
 		# Specifically for polychromatic, see https://polychromatic.app/download/fedora
 		sudo rpm -e gpg-pubkey-d6d11ce4-5418547d
