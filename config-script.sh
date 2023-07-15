@@ -94,7 +94,7 @@ install_base_stuff() {
 		i3_list="i3 i3status i3lock-color feh dunst picom polybar rofi xrdb"
 		exclude_list="gstreamer1-plugins-bad-free-devel lame-devel i3lock dmenu"
 
-		sudo dnf install $dnf_install_options $build_essentials $media_list $tools_list $docker_list
+		sudo dnf install $dnf_install_options $build_essentials $media_list $tools_list $docker_list $i3_list --exclude=$exclude_list
 
 		# Specifically for polychromatic, see https://polychromatic.app/download/fedora
 		sudo rpm -e gpg-pubkey-d6d11ce4-5418547d
@@ -105,6 +105,8 @@ install_base_stuff() {
 		flatpak_apps="com.discordapp.Discord com.getpostman.Postman com.github.tchx84.Flatseal com.spotify.Client"
 		flatpak install --noninteractive $flatpak_apps
 
+		# Install input-leap (barrier)
+		sudo dnf install --releasever=39 $dnf_install_options input-leap
 	}
 
 	post_install() {
@@ -165,6 +167,8 @@ install_base_stuff() {
 		cargo install rbw
 
 		# betterlock
+		# symlink i3lock-color to i3lock
+		sudo ln -s "$(which i3lock)" /usr/bin/i3lock-color
 		wget https://raw.githubusercontent.com/betterlockscreen/betterlockscreen/main/install.sh -O - -q | sudo bash -s system latest true
 
 		# set zsh as default shell
@@ -192,6 +196,7 @@ install_base_stuff() {
 
 		# Download dotfiles
 		git clone https://github.com/andreinasui/dotfiles.git $HOME/.dotfiles
+		rm -rf $HOME/.zshrc
 		(cd $HOME/.dotfiles && stow .)
 
 		# Create betterlockscreen cache
@@ -199,9 +204,6 @@ install_base_stuff() {
 
 		# fix i3lock to be able to accept login password after screen lock
 		echo "auth include system-auth" | sudo tee -a /etc/pam.d/i3lock
-
-		# symlink i3lock-color to i3lock
-		sudo ln -s "$(which i3lock)" /usr/bin/i3lock-color
 
 	}
 
@@ -228,12 +230,16 @@ initial_configurations() {
 }
 
 run_all() {
+	set -e
 	step=1
 	initial_configurations "$step"
 	invert_echo "It is recommended that you restart your system"
 	invert_echo "NOTE: Manually configure the following tools:"
 	echo "* Spicetify from the following link https://spicetify.app/docs/advanced-usage/installation#spotify-installed-from-flatpak"
 	echo "* Betterlock from the following link https://github.com/betterlockscreen/betterlockscreen#installation"
+	echo "* Input-leap"
+	echo "* Pipewire sound"
+	sudo dnf clean all
 }
 
 invert_echo "Installing first time config for Fedora $system_version"
