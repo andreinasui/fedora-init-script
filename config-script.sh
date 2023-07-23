@@ -102,9 +102,10 @@ install_base_stuff() {
       gstreamer1-plugin-openh264 gstreamer1-libav \
       lame* gnome-tweaks gnome-extensions-app steam \
       openrazer-meta"
-		tools_list="flatpak ripgrep fd-find tmux cargo wine lutris alacritty stow zsh neovim curl"
+		tools_list="flatpak ripgrep fd-find tmux cargo wine lutris alacritty stow zsh neovim curl playerctl pavucontrol"
 		docker_list="docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
 		i3_list="i3 i3status i3lock-color feh dunst picom polybar rofi xrdb xset xdpyinfo"
+
 		exclude_list="gstreamer1-plugins-bad-free-devel lame-devel"
 		exclude_i3_list="i3lock dmenu"
 
@@ -122,10 +123,6 @@ install_base_stuff() {
 
 		# Install input-leap (barrier)
 		sudo dnf install --releasever=39 $dnf_install_options input-leap
-	}
-
-	post_install() {
-		invert_echo "Postinstall actions"
 
 		# docker
 		invert_echo "Installing docker"
@@ -133,11 +130,6 @@ install_base_stuff() {
 		sudo usermod -aG docker $USER
 		sudo systemctl start docker
 		sudo systemctl enable docker
-
-		# Create mongodb container
-		invert_echo "Creating mongodb container"
-		sudo docker pull mongodb/mongodb-community-server
-		sudo docker run --name mongo -d mongodb/mongodb-community-server:latest
 
 		# mongocompass
 		invert_echo "Installing mongocompass"
@@ -177,18 +169,6 @@ install_base_stuff() {
 		invert_echo "Installing spicetify"
 		curl -fsSL https://raw.githubusercontent.com/spicetify/spicetify-cli/master/install.sh | sh
 
-		# neovim dependencies
-		invert_echo "Installing neovim dependencies"
-		cargo install rbw
-
-		# betterlock
-		# symlink i3lock-color to i3lock
-		sudo ln -s "$(which i3lock)" /usr/bin/i3lock-color
-		wget https://raw.githubusercontent.com/betterlockscreen/betterlockscreen/main/install.sh -O - -q | sudo bash -s system latest true
-
-		# set zsh as default shell
-		chsh -s "$(which zsh)" $USER
-
 		# pyenv
 		invert_echo "Installing pyenv"
 		curl https://pyenv.run | bash
@@ -208,6 +188,47 @@ install_base_stuff() {
 		invert_echo "Installing node $node_version"
 		$HOME/.nodenv/bin/nodenv install $node_version
 		$HOME/.nodenv/bin/nodenv global $node_version
+	}
+
+	post_install() {
+		invert_echo "Postinstall actions"
+
+		# Openrazer configuration
+		sudo gpasswd -a $USER plugdev
+		sudo dkms install -m openrazer-driver/3.6.1
+
+		# Create mongodb container
+		invert_echo "Creating mongodb container"
+		sudo docker pull mongodb/mongodb-community-server
+		sudo docker run --name mongo -d mongodb/mongodb-community-server:latest
+
+		# Spicetify config
+		local flatpak_install="$(flatpak --installations)"
+		local spotify_path="$flatpak_install/app/com.spotify.Client/current/active/files/extra/share/spotify"
+		local spotify_prefs_path="$HOME/.var/app/com.spotify.Client/config/spotify/prefs"
+		local spicetify_config="$(spicetify --config)"
+		spicetify config
+		sed -i -e "/spotify_path\s*=/ s|=.*|= $spotify_path|" $spicetify_config
+		sed -i -e "/prefs_path\s*=/ s|=.*|= $spotify_prefs_path|" $spicetify_config
+		sudo chmod a+wr "$spotify_path"
+		sudo chmod a+wr -R "$spotify_path/Apps"
+		# Add extensions and themes
+		spicetify config extensions fullAppDisplay.js
+		spicetify config custom_apps lyrics-plus
+		curl -fsSL https://raw.githubusercontent.com/Tetrax-10/Nord-Spotify/master/install-scripts/install.sh | sh
+		spicetify apply
+
+		# neovim dependencies
+		invert_echo "Installing neovim dependencies"
+		cargo install rbw
+
+		# betterlock
+		# symlink i3lock-color to i3lock
+		sudo ln -s "$(which i3lock)" /usr/bin/i3lock-color
+		wget https://raw.githubusercontent.com/betterlockscreen/betterlockscreen/main/install.sh -O - -q | sudo bash -s system latest true
+
+		# set zsh as default shell
+		chsh -s "$(which zsh)" $USER
 
 		# Download dotfiles
 		invert_echo "Downloading dotfiles"
