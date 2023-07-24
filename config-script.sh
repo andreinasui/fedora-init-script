@@ -86,6 +86,7 @@ install_base_stuff() {
 		sudo dnf install $dnf_install_options kernel-devel # https://openrazer.github.io/#download
 		sudo dnf config-manager --add-repo https://download.opensuse.org/repositories/hardware:razer/Fedora_"$system_version"/hardware:razer.repo
 		sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+		sudo dnf config-manager --add-repo https://dl.winehq.org/wine-builds/fedora/$system_version/winehq.repo
 		sudo dnf copr $dnf_install_options enable tokariew/i3lock-color
 	}
 
@@ -102,7 +103,7 @@ install_base_stuff() {
       gstreamer1-plugin-openh264 gstreamer1-libav \
       lame* gnome-tweaks gnome-extensions-app steam \
       openrazer-meta"
-		tools_list="flatpak ripgrep fd-find tmux cargo wine lutris alacritty stow zsh neovim curl playerctl pavucontrol"
+		tools_list="flatpak ripgrep fd-find tmux cargo winehq-staging alacritty stow zsh neovim curl playerctl pavucontrol"
 		docker_list="docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
 		i3_list="i3 i3status i3lock-color feh dunst picom polybar rofi xrdb xset xdpyinfo"
 
@@ -118,7 +119,7 @@ install_base_stuff() {
 
 		# Flatpak installs
 		invert_echo "Installing flatpaks"
-		flatpak_apps="com.discordapp.Discord com.getpostman.Postman com.github.tchx84.Flatseal com.spotify.Client"
+		flatpak_apps="com.discordapp.Discord com.getpostman.Postman com.github.tchx84.Flatseal com.spotify.Client com.usebottles.bottles"
 		flatpak install --noninteractive $flatpak_apps
 
 		# Install input-leap (barrier)
