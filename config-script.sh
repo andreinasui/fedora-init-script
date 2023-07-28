@@ -201,7 +201,7 @@ install_base_stuff() {
 		# Create mongodb container
 		invert_echo "Creating mongodb container"
 		sudo docker pull mongodb/mongodb-community-server
-		sudo docker run --name mongo -d mongodb/mongodb-community-server:latest
+		sudo docker run --name mongo -p 27017:27017 -d mongodb/mongodb-community-server:latest
 
 		# Spicetify config
 		local flatpak_install="$(flatpak --installations)"
